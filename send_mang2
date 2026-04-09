@@ -1,0 +1,42 @@
+import os, requests
+from datetime import datetime
+
+GEMINI_KEY = os.environ["GEMINI_API_KEY"]
+TG_TOKEN   = os.environ["TELEGRAM_TOKEN"]
+TG_CHAT    = os.environ["TELEGRAM_CHAT_ID"]
+
+today = datetime.now().strftime("%Y년 %m월 %d일")
+
+prompt = f"""오늘은 {today}입니다.
+이번 주말 망원동 가족 나들이 추천을 검색해서 정리해주세요.
+1. 최근 유튜버가 다녀간 망원동 맛집/카페/빵집
+2. 구글 리뷰 최근 급증한 핫플
+3. 망원 한강공원 주변 즐길거리
+
+형식:
+🗺 이번 주말 망원동 추천
+
+📌 장소명
+카테고리 | 한 줄 소개
+💡 팁: 방문 팁
+📎 출처: 정보 출처
+
+(5-6곳 후)
+👨‍👩‍👧 추천 코스: 오전→점심→오후"""
+
+# Gemini API 호출 (Google Search 포함)
+res = requests.post(
+    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}",
+    json={
+        "contents": [{"parts": [{"text": prompt}]}],
+        "tools": [{"google_search": {}}]   # 웹서치 무료 내장
+    }
+)
+
+text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+# 텔레그램 전송
+requests.post(
+    f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+    json={"chat_id": TG_CHAT, "text": text}
+)
